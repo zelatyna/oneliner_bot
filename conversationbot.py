@@ -15,92 +15,115 @@ bot.
 """
 
 import logging
-import os,sys
+import os, sys
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
-                          ConversationHandler)
+from telegram.ext import (
+    Updater, CommandHandler, MessageHandler, Filters,
+    ConversationHandler
+)
 import datetime
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-GENDER, PHOTO, LOCATION, BIO = range(4)
+DATE, PHOTO, LOCATION, INFO, PARSE = range(5)
 TOKEN = os.getenv("TOKEN")
 
+
 def start(update, context):
-    reply_keyboard = [['Today', 'Yesterday', 'Other']]
+    reply_keyboard = [['Today', 'Yesterday']]
 
     update.message.reply_text(
         'Hi! My name is Professor Freud. Please tel me what happened... ?'
-        '*Send /cancel to stop talking to me.\n\n',
+        '*Send /other to type the date.\n\n',
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
-    return GENDER
-
-def day(update, context):
-    user = update.message.from_user
-
-    logger.info("Day chosen is %s: %s", user.first_name, update.message.text)
-    update.message.reply_text('I see! Please send me a photo of yourself, ',
-                              reply_markup=ReplyKeyboardRemove())
-
-    return PHOTO
-
+    return DATE
 
 
 def day_option_to_date(day):
     if day == 'Today':
         return datetime.datetime.now().date()
     elif day == "Yesterday":
-        return (datetime.datetime.now() - '1 day').date()
-    else:
+        yst = datetime.datetime.now().date() - datetime.timedelta(days=1)
+        return yst
 
 
-def photo(update, context):
+def other_day(update, context):
     user = update.message.from_user
-    photo_file = update.message.photo[-1].get_file()
-    photo_file.download('user_photo.jpg')
-    logger.info("Photo of %s: %s", user.first_name, 'user_photo.jpg')
-    update.message.reply_text('Gorgeous! Now, send me your location please, '
-                              'or send /skip if you don\'t want to.')
-
-    return LOCATION
+    logging.info(update.message.text)
+    update.message.reply_text('Enter date in format dd/mm/yyyy', reply_markup=ReplyKeyboardRemove())
+    return PARSE
 
 
-def skip_photo(update, context):
+def parse_date(update, context):
+    try:
+        date = datetime.datetime.strptime(update.message.text, '%d/%m/%Y').date()
+        update.message.reply_text(
+            'Thanks {0}. You typed date: {1} \n  Write your one liner update'.format(update.message.from_user.first_name, date))
+        return INFO
+    except ValueError:
+        update.message.reply_text('Wrong date format. Should be dd/mm/yyyy')
+        return DATE
+
+
+def day(update, context):
     user = update.message.from_user
-    logger.info("User %s did not send a photo.", user.first_name)
-    update.message.reply_text('I bet you look great! Now, send me your location please, '
-                              'or send /skip.')
+    date = day_option_to_date(update.message.text)
+    logger.info("Ok %s. Your day chosen is %s", user, date)
+    update.message.reply_text('Thanks! I am sure it was amazing day! Write your one liner update ',
+                              reply_markup=ReplyKeyboardRemove())
 
-    return LOCATION
-
-
-def location(update, context):
-    user = update.message.from_user
-    user_location = update.message.location
-    logger.info("Location of %s: %f / %f", user.first_name, user_location.latitude,
-                user_location.longitude)
-    update.message.reply_text('Maybe I can visit you sometime! '
-                              'At last, tell me something about yourself.')
-
-    return BIO
+    return INFO
 
 
-def skip_location(update, context):
-    user = update.message.from_user
-    logger.info("User %s did not send a location.", user.first_name)
-    update.message.reply_text('You seem a bit paranoid! '
-                              'At last, tell me something about yourself.')
-
-    return BIO
+#
+# def photo(update, context):
+#     user = update.message.from_user
+#     photo_file = update.message.photo[-1].get_file()
+#     photo_file.download('user_photo.jpg')
+#     logger.info("Photo of %s: %s", user.first_name, 'user_photo.jpg')
+#     update.message.reply_text('Gorgeous! Now, send me your location please, '
+#                               'or send /skip if you don\'t want to.')
+#
+#     return LOCATION
+#
+#
+# def skip_photo(update, context):
+#     user = update.message.from_user
+#     logger.info("User %s did not send a photo.", user.first_name)
+#     update.message.reply_text('I bet you look great! Now, send me your location please, '
+#                               'or send /skip.')
+#
+#     return LOCATION
+#
+#
+# def location(update, context):
+#     user = update.message.from_user
+#     user_location = update.message.location
+#     logger.info("Location of %s: %f / %f", user.first_name, user_location.latitude,
+#                 user_location.longitude)
+#     update.message.reply_text('Maybe I can visit you sometime! '
+#                               'At last, tell me something about yourself.')
+#
+#     return INFO
+#
+#
+# def skip_location(update, context):
+#     user = update.message.from_user
+#     logger.info("User %s did not send a location.", user.first_name)
+#     update.message.reply_text('You seem a bit paranoid! '
+#                               'At last, tell me something about yourself.')
+#
+#     return INFO
 
 
 def bio(update, context):
     user = update.message.from_user
-    logger.info("Bio of %s: %s", user.first_name, update.message.text)
+    logger.info("Update of %s: %s", user.first_name, update.message.text)
     update.message.reply_text('Thank you! I hope we can talk again some day.')
 
     return ConversationHandler.END
@@ -124,7 +147,7 @@ def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
-    updater = Updater("TOKEN", use_context=True)
+    updater = Updater(TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -134,15 +157,18 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            GENDER: [MessageHandler(Filters.regex('Today|Yesterday|Other'), gender)],
+            DATE: [MessageHandler(Filters.regex('Today|Yesterday'), day),
+                   CommandHandler('other', other_day)],
 
-            PHOTO: [MessageHandler(Filters.photo, photo),
-                    CommandHandler('skip', skip_photo)],
+            # PHOTO: [MessageHandler(Filters.photo, photo),
+            #         CommandHandler('skip', skip_photo)],
+            #
+            # LOCATION: [MessageHandler(Filters.location, location),
+            #            CommandHandler('skip', skip_location)],
 
-            LOCATION: [MessageHandler(Filters.location, location),
-                       CommandHandler('skip', skip_location)],
+            INFO: [MessageHandler(Filters.text, bio)],
 
-            BIO: [MessageHandler(Filters.text, bio)]
+            PARSE: [MessageHandler(Filters.text, parse_date)]
         },
 
         fallbacks=[CommandHandler('cancel', cancel)]

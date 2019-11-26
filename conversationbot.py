@@ -15,13 +15,14 @@ bot.
 """
 
 import logging
+import datetime
 import os, sys
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (
     Updater, CommandHandler, MessageHandler, Filters,
     ConversationHandler
 )
-import datetime
+from oneliner_api import OneLiner_client, API_DATE_FORMAT
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,11 +46,12 @@ def start(update, context):
 
 
 def day_option_to_date(day):
+
     if day == 'Today':
-        return datetime.datetime.now().date()
+        day_dtm = datetime.datetime.now()
     elif day == "Yesterday":
-        yst = datetime.datetime.now().date() - datetime.timedelta(days=1)
-        return yst
+        day_dtm = datetime.datetime.now() - datetime.timedelta(days=1)
+    return day_dtm
 
 
 def other_day(update, context):
@@ -61,7 +63,8 @@ def other_day(update, context):
 
 def parse_date(update, context):
     try:
-        date = datetime.datetime.strptime(update.message.text, '%d/%m/%Y').date()
+        date = datetime.datetime.strptime(update.message.text, '%d/%m/%Y')
+        context.user_data['date_pub'] = date.strftime(API_DATE_FORMAT)
         update.message.reply_text(
             'Thanks {0}. You typed date: {1} \n  Write your one liner update'.format(update.message.from_user.first_name, date))
         return INFO
@@ -74,6 +77,7 @@ def day(update, context):
     user = update.message.from_user
     date = day_option_to_date(update.message.text)
     logger.info("Ok %s. Your day chosen is %s", user, date)
+    context.user_data['date_pub'] = date.strftime(API_DATE_FORMAT)
     update.message.reply_text('Thanks! I am sure it was amazing day! Write your one liner update ',
                               reply_markup=ReplyKeyboardRemove())
 
@@ -120,12 +124,18 @@ def day(update, context):
 #
 #     return INFO
 
+def publish_one_liner(context):
+    ol_client = OneLiner_client()
+    r = ol_client.post_one_liner(context.user_data)
+    logging.info(r.status_code)
 
-def bio(update, context):
+def one_liner(update, context):
     user = update.message.from_user
     logger.info("Update of %s: %s", user.first_name, update.message.text)
+    context.user_data['one_liner_txt'] = update.message.text
+    context.user_data['user_name'] = user.first_name
+    publish_one_liner(context)
     update.message.reply_text('Thank you! I hope we can talk again some day.')
-
     return ConversationHandler.END
 
 
@@ -166,7 +176,7 @@ def main():
             # LOCATION: [MessageHandler(Filters.location, location),
             #            CommandHandler('skip', skip_location)],
 
-            INFO: [MessageHandler(Filters.text, bio)],
+            INFO: [MessageHandler(Filters.text, one_liner)],
 
             PARSE: [MessageHandler(Filters.text, parse_date)]
         },

@@ -17,6 +17,7 @@ bot.
 import logging
 import datetime
 import os, sys
+import json
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (
     Updater, CommandHandler, MessageHandler, Filters,
@@ -30,23 +31,61 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-DATE, PHOTO, LOCATION, INFO, PARSE = range(5)
+AUTH, START_DATE, DATE, PHOTO, LOCATION, INFO, PARSE = range(7)
 TOKEN = os.getenv("TOKEN")
 
 
 def start(update, context):
-    reply_keyboard = [['Today', 'Yesterday']]
+    # first authenticate the user
 
+    if 'password' not in context.user_data or 'ol_client' not in context.user_data:
+        intro = 'Hi! My name is Professor Freud! We need to authenticate you first.' \
+                'Please provide your password to OneLiner app'
+        update.message.reply_text(intro, reply_markup=ReplyKeyboardRemove())
+
+        return AUTH
+
+    else:
+        return START_DATE
+
+
+def start_date(update, context):
+    reply_keyboard = [['Today', 'Yesterday']]
     update.message.reply_text(
-        'Hi! My name is Professor Freud. Please tel me what happened... ?'
-        '*Send /other to type the date.\n\n',
+        'Please tel me what happened... ?'
+        'Use /other to type the date.\n\n',
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
     return DATE
 
 
-def day_option_to_date(day):
+def auth(update, context):
+    reply_keyboard = [['Cool!']]
+    username = update.message.from_user.first_name
+    password = update.message.text
+    try:
+        ol_client = OneLiner_client()
+        if ol_client:
 
+            token = ol_client.fetch_token(data={
+                'username': username,
+                "password": password
+            })
+            logger.info(token)
+            context.user_data['ol_client'] = ol_client
+            if ol_client.is_auth():
+                update.message.reply_text('You were successfully authenticated!',
+                                          reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+            return START_DATE
+    except ValueError:
+        update.message.reply_text('Your authentication was not successful! Try again :)',
+                                      reply_markup=ReplyKeyboardRemove())
+        return AUTH
+
+
+
+
+def day_option_to_date(day):
     if day == 'Today':
         day_dtm = datetime.datetime.now()
     elif day == "Yesterday":
@@ -66,7 +105,8 @@ def parse_date(update, context):
         date = datetime.datetime.strptime(update.message.text, '%d/%m/%Y')
         context.user_data['date_pub'] = date.strftime(API_DATE_FORMAT)
         update.message.reply_text(
-            'Thanks {0}. You typed date: {1} \n  Write your one liner update'.format(update.message.from_user.first_name, date))
+            'Thanks {0}. You typed date: {1} \n  Write your one liner update'.format(
+                update.message.from_user.first_name, date))
         return INFO
     except ValueError:
         update.message.reply_text('Wrong date format. Should be dd/mm/yyyy')
@@ -124,18 +164,19 @@ def day(update, context):
 #
 #     return INFO
 
-def publish_one_liner(context):
-    ol_client = OneLiner_client()
-    r = ol_client.post_one_liner(context.user_data)
-    logging.info(r.status_code)
 
-def one_liner(update, context):
+def publish_one_liner(update, context):
     user = update.message.from_user
     logger.info("Update of %s: %s", user.first_name, update.message.text)
     context.user_data['one_liner_txt'] = update.message.text
     context.user_data['user_name'] = user.first_name
-    publish_one_liner(context)
-    update.message.reply_text('Thank you! I hope we can talk again some day.')
+    ol_client = context.user_data['ol_client']
+    r = ol_client.post_one_liner(context.user_data)
+    if r.status_code != 201:
+        update.message.reply_text('Ooops Something went wrong: %s' % r.text)
+    else:
+        update.message.reply_text('Thank you! I hope we can talk again some day.')
+
     return ConversationHandler.END
 
 
@@ -167,6 +208,10 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
+            AUTH: [MessageHandler(Filters.text, auth)],
+
+            START_DATE: [MessageHandler(Filters.regex('Cool'), start_date)],
+
             DATE: [MessageHandler(Filters.regex('Today|Yesterday'), day),
                    CommandHandler('other', other_day)],
 
@@ -176,7 +221,7 @@ def main():
             # LOCATION: [MessageHandler(Filters.location, location),
             #            CommandHandler('skip', skip_location)],
 
-            INFO: [MessageHandler(Filters.text, one_liner)],
+            INFO: [MessageHandler(Filters.text, publish_one_liner)],
 
             PARSE: [MessageHandler(Filters.text, parse_date)]
         },
@@ -196,7 +241,6 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
-
 
 if __name__ == '__main__':
     main()

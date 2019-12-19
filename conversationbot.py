@@ -18,7 +18,7 @@ import logging
 import datetime
 import os, sys
 import json
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
+from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import (
     Updater, CommandHandler, MessageHandler, Filters,
     ConversationHandler
@@ -37,12 +37,11 @@ TOKEN = os.getenv("TOKEN")
 
 def start(update, context):
     # first authenticate the user
-
+    kb = KeyboardButton(text = 'Please provide your phone number', request_contact=True)
     if 'password' not in context.user_data or 'ol_client' not in context.user_data:
-        intro = 'Hi! My name is Professor Freud! We need to authenticate you first.' \
-                'Please provide your password to OneLiner app'
-        update.message.reply_text(intro, reply_markup=ReplyKeyboardRemove())
-
+        intro = 'Hi! My name is Professor Freud! We need to authenticate you first.'
+        # update.message.reply_text(intro, )
+        update.message.reply_text(intro, reply_markup = ReplyKeyboardMarkup(keyboard = [[kb, "Cancel"]], one_time_keyboard=True))
         return AUTH
 
     else:

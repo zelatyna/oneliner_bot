@@ -37,11 +37,15 @@ TOKEN = os.getenv("TOKEN")
 
 def start(update, context):
     # first authenticate the user
-    kb = KeyboardButton(text = 'Please provide your phone number', request_contact=True)
-    if 'password' not in context.user_data or 'ol_client' not in context.user_data:
-        intro = 'Hi! My name is Professor Freud! We need to authenticate you first.'
+    kb = KeyboardButton(text='Share my phone number', request_contact=True)
+    if 'phone_number' not in context.user_data or 'ol_client' not in context.user_data:
+        intro = 'Hi! My name is Professor Freud! I need to authenticate you first with One Liner app.'
         # update.message.reply_text(intro, )
-        update.message.reply_text(intro, reply_markup = ReplyKeyboardMarkup(keyboard = [[kb, "Cancel"]], one_time_keyboard=True))
+        update.message.reply_text(intro, reply_markup=ReplyKeyboardMarkup(keyboard=[[kb], ["Cancel"]],
+                                                                          one_time_keyboard=True))
+
+        #TODO:
+        #handle reply
         return AUTH
 
     else:
@@ -59,9 +63,9 @@ def start_date(update, context):
 
 
 def auth(update, context):
-    reply_keyboard = [['Cool!']]
+    reply_keyboard = [['Cool! Thanks for sharing']]
     username = update.message.from_user.first_name
-    password = update.message.text
+    phone_number = update.message.from_user.contact
     try:
         ol_client = OneLiner_client()
         if ol_client:
@@ -78,10 +82,8 @@ def auth(update, context):
             return START_DATE
     except ValueError:
         update.message.reply_text('Your authentication was not successful! Try again :)',
-                                      reply_markup=ReplyKeyboardRemove())
+                                  reply_markup=ReplyKeyboardRemove())
         return AUTH
-
-
 
 
 def day_option_to_date(day):
@@ -240,6 +242,7 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 if __name__ == '__main__':
     main()

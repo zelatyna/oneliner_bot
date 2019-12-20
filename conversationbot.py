@@ -63,9 +63,11 @@ def start_date(update, context):
 
 
 def auth(update, context):
-    reply_keyboard = [['Cool! Thanks for sharing']]
+    contact = update.effective_message.contact
+    reply_keyboard = [['Cool!']]
     username = update.message.from_user.first_name
-    phone_number = update.message.from_user.contact
+    phone_number = contact.phone_number
+    password = phone_number
     try:
         ol_client = OneLiner_client()
         if ol_client:
@@ -166,6 +168,8 @@ def day(update, context):
 #     return INFO
 
 
+
+
 def publish_one_liner(update, context):
     user = update.message.from_user
     logger.info("Update of %s: %s", user.first_name, update.message.text)
@@ -209,7 +213,7 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            AUTH: [MessageHandler(Filters.text, auth)],
+            AUTH: [MessageHandler(Filters.contact, auth)],
 
             START_DATE: [MessageHandler(Filters.regex('Cool'), start_date)],
 
@@ -232,6 +236,7 @@ def main():
 
     dp.add_handler(conv_handler)
 
+    #dp.add_handler(MessageHandler(Filters.contact, contact_callback))
     # log all errors
     dp.add_error_handler(error)
 

@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 AUTH, START_DATE, DATE, PHOTO, LOCATION, INFO, PARSE = range(7)
 TOKEN = os.getenv("TOKEN")
-DB_FILE = os.getenv("DB_FILE")
+DB_FILE = str(os.getenv("DB_FILE"))
 
 def start(update, context):
     # first authenticate the user
@@ -155,9 +155,9 @@ def photo(update, context):
     user = update.message.from_user
     photo_file = update.message.photo[-1].get_file()
     photo_file.download('user_photo.jpg')
-    logger.info("Photo of %s: %s", user.first_name, 'user_photo.jpg')
-    update.message.reply_text('Gorgeous! Now, send me a picture to be attached to your update, '
-                              'or send /skip if you don\'t want to.')
+    context.user_data['image_path']= 'user_photo.jpg'
+    logging.info(photo_file)
+    update.message.reply_text('Gorgeous! Now, send me your update for the day')
 
     return INFO
 
@@ -165,8 +165,7 @@ def photo(update, context):
 def skip_photo(update, context):
     user = update.message.from_user
     logger.info("User %s did not send a photo.", user.first_name)
-    update.message.reply_text('I bet you look great! Now, send me your update for the day '
-                              'or send /skip.')
+    update.message.reply_text('I bet you look great! Now, send me your update for the day')
 
     return INFO
 

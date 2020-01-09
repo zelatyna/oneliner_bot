@@ -28,18 +28,18 @@ class OneLiner_client:
 
     def post_one_liner(self, data, token):
         files = {}
-        headers = {'Content-type': 'image/png', 'Accept': 'application/json'}
+        headers = {'Accept': 'text/html,application/xhtml+xml,application/xml'}
         headers['Authorization'] = "Token {token}".format(token=token)
         post_data = {
             "one_liner_text": data['one_liner_txt'],
             "pub_date": data['date_pub']
         }
         if 'image_path' in data:
-            files = {'media': open(data['image_path'], 'rb')}
+            files = {'update_image': open(data['image_path'], 'rb')}
 
 
         logging.info(json.dumps(post_data))
-        r = requests.post(self.host + '/updates/', json=post_data, headers=headers, files = files)
+        r = requests.post(self.host + '/updates/', data=post_data, headers=headers, files = files)
 
         if r.status_code != 201:
             logging.error(r.text)

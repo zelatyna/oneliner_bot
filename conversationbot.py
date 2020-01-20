@@ -16,11 +16,7 @@ bot.
 
 import logging
 import datetime
-import os, sys
-import json
-import sqlite3
 from sqlite3 import Error
-import psycopg2
 from sqlalchemy import create_engine
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import (
@@ -28,6 +24,8 @@ from telegram.ext import (
     ConversationHandler
 )
 from oneliner_api import OneLiner_client, API_DATE_FORMAT
+import os
+port = int(os.environ.get("PORT", 5000))
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

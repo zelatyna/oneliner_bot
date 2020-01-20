@@ -20,6 +20,8 @@ import os, sys
 import json
 import sqlite3
 from sqlite3 import Error
+import psycopg2
+from sqlalchemy import create_engine
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import (
     Updater, CommandHandler, MessageHandler, Filters,
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 AUTH, START_DATE, DATE, PHOTO, LOCATION, INFO, PARSE = range(7)
 TOKEN = os.getenv("TOKEN")
 DB_FILE = str(os.getenv("DB_FILE"))
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def start(update, context):
     # first authenticate the user
@@ -54,42 +57,43 @@ def start(update, context):
         return START_DATE
 
 
-def create_connection(db_file):
+def create_connection():
     """ create a database connection to a SQLite database """
     conn = None
     try:
-        conn = sqlite3.connect(db_file)
-        print(sqlite3.version)
+        engine = create_engine(DATABASE_URL)
+        conn = engine.connect()
     except Error as e:
         print(e)
     return conn
 
 
-def get_token(conn, username):
+import urllib.parse
+def get_token(conn, phone_number):
     SQL = f"select a.key from authtoken_token a " \
-          f"join one_liner_customuser c on c.id = a.user_id where c.username=\"{username}\";"
-    cur = conn.cursor()
-    cur.execute(SQL)
+          f"join one_liner_customuser c on c.id = a.user_id where c.phone_number=\'{phone_number}\';"
 
-    rows = cur.fetchall()
-    return rows[0][0]
+    rows = conn.execute(SQL)
+    for r in rows:
+        result = r[0]
+    return result
 
 
 def auth(update, context):
     contact = update.effective_message.contact
     token = None
     reply_keyboard = [['Cool!']]
-    phone_number = "+{0}".format(contact.phone_number)
-    conn = create_connection(DB_FILE)
+    phone_number = contact.phone_number
+    conn = create_connection()
     try:
         ol_client = OneLiner_client()
         if ol_client:
-            user_data = ol_client.get_user(data={
-                "phone_number": phone_number
-            })
-            logger.info(user_data)
-            username = user_data['username']
-            token = get_token(conn, username)
+            # user_data = ol_client.get_user(data={
+            #     "phone_number": phone_number
+            # })
+            # logger.info(user_data)
+            # username = user_data['username']
+            token = get_token(conn, phone_number)
             if token is not None:
                 context.user_data['token'] = token
                 update.message.reply_text('You were successfully authenticated!',

@@ -5,7 +5,7 @@ import json
 API_DATE_FORMAT = '%Y-%m-%d'
 
 class OneLiner_client:
-    def __init__(self, host='http://localhost:8000/one_liner'):
+    def __init__(self, host='https://cheesyapp.herokuapp.com/one_liner'):
         self.host = host
         self.headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
 

@@ -37,6 +37,7 @@ AUTH, START_DATE, DATE, PHOTO, LOCATION, INFO, PARSE = range(7)
 TOKEN = os.getenv("TOKEN")
 DB_FILE = str(os.getenv("DB_FILE"))
 DATABASE_URL = os.getenv("DATABASE_URL")
+PORT = int(os.environ.get('PORT', '8443'))
 
 def start(update, context):
     # first authenticate the user
@@ -208,6 +209,13 @@ def main():
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
     updater = Updater(TOKEN, use_context=True)
+    # add handlers
+    updater.start_webhook(listen="0.0.0.0",
+                          port=PORT,
+                          url_path=TOKEN)
+    updater.bot.set_webhook("https://onelinerbot.herokuapp.com/" + TOKEN)
+    updater.idle()
+
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -249,6 +257,23 @@ def main():
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
+
+
+@server.route('/' + TOKEN, methods=['POST'])
+def getMessage():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "!", 200
+
+
+@server.route("/")
+def webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url='https://your_heroku_project.com/' + TOKEN)
+    return "!", 200
+
+
+if __name__ == "__main__":
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 if __name__ == '__main__':
     main()

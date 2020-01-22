@@ -255,8 +255,7 @@ def main():
             PARSE: [MessageHandler(Filters.text, parse_date)]
         },
 
-        fallbacks=[CommandHandler('cancel', cancel)],
-        conversation_timeout=60
+        fallbacks=[CommandHandler('cancel', cancel)]
     )
 
     dp.add_handler(conv_handler)

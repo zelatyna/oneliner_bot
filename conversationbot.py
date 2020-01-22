@@ -210,7 +210,7 @@ def publish_one_liner(update, context):
         update.message.reply_text('something went terribly wrong. {e}'.format(e))
     finally:
         logging.info("Finished publish of one_liner")
-        return AUTH
+        return ConversationHandler.END
 
 
 def cancel(update, context):
@@ -219,7 +219,7 @@ def cancel(update, context):
     update.message.reply_text('Bye! I hope we can talk again some day.',
                               reply_markup=ReplyKeyboardRemove())
 
-    return AUTH
+    return ConversationHandler.END
 
 
 def error(update, context):
@@ -255,7 +255,8 @@ def main():
             PARSE: [MessageHandler(Filters.text, parse_date)]
         },
 
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', cancel)],
+        conversation_timeout=60
     )
 
     dp.add_handler(conv_handler)

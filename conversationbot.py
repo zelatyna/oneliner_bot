@@ -61,19 +61,14 @@ else:
 def start(update, context):
     # first authenticate the user
     kb = KeyboardButton(text='Share my phone number', request_contact=True)
-    if 'token' not in context.user_data:
-        intro = 'Hi! My name is Professor Freud! I need to authenticate you first with One Liner app.'
-        # update.message.reply_text(intro, )
-        update.message.reply_text(intro, reply_markup=ReplyKeyboardMarkup(keyboard=[[kb], ["Cancel"]],
+    intro = 'Hi! My name is Professor Freud! I need to authenticate you first with One Liner app.'
+    # update.message.reply_text(intro, )
+    update.message.reply_text(intro, reply_markup=ReplyKeyboardMarkup(keyboard=[[kb], ["Cancel"]],
                                                                           one_time_keyboard=True))
 
         # TODO:
         # handle reply
-        return AUTH
-
-    else:
-        return START_DATE
-
+    return AUTH
 
 def create_connection():
     """ create a database connection to a SQLite database """

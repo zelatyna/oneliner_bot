@@ -210,7 +210,7 @@ def publish_one_liner(update, context):
         update.message.reply_text('something went terribly wrong. {e}'.format(e))
     finally:
         logging.info("Finished publish of one_liner")
-        return ConversationHandler.END
+        return AUTH
 
 
 def cancel(update, context):
@@ -219,7 +219,7 @@ def cancel(update, context):
     update.message.reply_text('Bye! I hope we can talk again some day.',
                               reply_markup=ReplyKeyboardRemove())
 
-    return ConversationHandler.END
+    return AUTH
 
 
 def error(update, context):

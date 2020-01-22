@@ -24,7 +24,7 @@ from telegram.ext import (
     ConversationHandler
 )
 from oneliner_api import OneLiner_client, API_DATE_FORMAT
-import os
+import os, sys
 port = int(os.environ.get("PORT", 5000))
 
 # Enable logging
@@ -35,9 +35,26 @@ logger = logging.getLogger(__name__)
 
 AUTH, START_DATE, DATE, PHOTO, LOCATION, INFO, PARSE = range(7)
 TOKEN = os.getenv("TOKEN")
+MODE = os.getenv("MODE")
 DB_FILE = str(os.getenv("DB_FILE"))
 DATABASE_URL = os.getenv("DATABASE_URL")
-PORT = int(os.environ.get('PORT', '8443'))
+
+if MODE == "dev":
+    def run(updater):
+        updater.start_polling()
+elif MODE == "prod":
+    def run(updater):
+        PORT = int(os.environ.get("PORT", "8443"))
+        HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
+        # Code from https://github.com/python-telegram-bot/python-telegram-bot/wiki/Webhooks#heroku
+        updater.start_webhook(listen="0.0.0.0",
+                              port=PORT,
+                              url_path=TOKEN)
+        updater.bot.set_webhook("https://{}.herokuapp.com/{}".format(HEROKU_APP_NAME, TOKEN))
+        updater.idle()
+else:
+    logger.error("No MODE specified!")
+    sys.exit(1)
 
 def start(update, context):
     # first authenticate the user
@@ -243,13 +260,7 @@ def main():
     # log all errors
     dp.add_error_handler(error)
 
-
-    updater.start_webhook(listen="0.0.0.0",
-                          port=PORT,
-                          url_path=TOKEN)
-    updater.bot.set_webhook("https://onelinerbot.herokuapp.com/" + TOKEN)
-
-    updater.idle()
+    run(updater)
 
 if __name__ == '__main__':
     main()

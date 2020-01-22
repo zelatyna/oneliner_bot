@@ -25,6 +25,7 @@ from telegram.ext import (
 )
 from oneliner_api import OneLiner_client, API_DATE_FORMAT
 import os, sys
+import requests.exceptions
 port = int(os.environ.get("PORT", 5000))
 
 # Enable logging
@@ -200,12 +201,16 @@ def publish_one_liner(update, context):
     # context.user_data['user_name'] = user.first_name
     ol_client = OneLiner_client();
     r = ol_client.post_one_liner(context.user_data, context.user_data['token'])
-    if r.status_code != 201:
-        update.message.reply_text('Ooops Something went wrong: %s' % r.text)
-    else:
-        update.message.reply_text('Thank you! Let\'s catch up tomorrow')
-
-    return ConversationHandler.END
+    try:
+        if r.status_code != 201:
+            update.message.reply_text('Ooops Something went wrong: %s' % r.text)
+        elif r.status_code is not None:
+            update.message.reply_text('Thank you! Let\'s catch up tomorrow')
+    except requests.exceptions.RequestException as e:
+        update.message.reply_text('something went terribly wrong. {e}'.format(e))
+    finally:
+        logging.info("Finished publish of one_liner")
+        return ConversationHandler.END
 
 
 def cancel(update, context):

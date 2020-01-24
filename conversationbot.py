@@ -40,6 +40,7 @@ MODE = os.getenv("MODE")
 DB_FILE = str(os.getenv("DB_FILE"))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+#use polling in dev env and webhook in production
 if MODE == "dev":
     def run(updater):
         updater.start_polling()
@@ -66,8 +67,6 @@ def start(update, context):
     update.message.reply_text(intro, reply_markup=ReplyKeyboardMarkup(keyboard=[[kb], ["Cancel"]],
                                                                           one_time_keyboard=True))
 
-        # TODO:
-        # handle reply
     return AUTH
 
 def create_connection():

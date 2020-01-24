@@ -26,6 +26,7 @@ from telegram.ext import (
 from oneliner_api import OneLiner_client, API_DATE_FORMAT
 import os, sys
 import requests.exceptions
+
 port = int(os.environ.get("PORT", 5000))
 
 # Enable logging
@@ -40,7 +41,7 @@ MODE = os.getenv("MODE")
 DB_FILE = str(os.getenv("DB_FILE"))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-#use polling in dev env and webhook in production
+# use polling in dev env and webhook in production
 if MODE == "dev":
     def run(updater):
         updater.start_polling()
@@ -59,15 +60,17 @@ else:
     logger.error("No MODE specified!")
     sys.exit(1)
 
+
 def start(update, context):
     # first authenticate the user
     kb = KeyboardButton(text='Share my phone number', request_contact=True)
     intro = 'Hi! My name is Professor Freud! I need to authenticate you first with One Liner app.'
     # update.message.reply_text(intro, )
     update.message.reply_text(intro, reply_markup=ReplyKeyboardMarkup(keyboard=[[kb], ["Cancel"]],
-                                                                          one_time_keyboard=True))
+                                                                      one_time_keyboard=True))
 
     return AUTH
+
 
 def create_connection():
     """ create a database connection to a SQLite database """
@@ -81,6 +84,8 @@ def create_connection():
 
 
 import urllib.parse
+
+
 def get_token(conn, phone_number):
     SQL = f"select a.key from authtoken_token a " \
           f"join one_liner_customuser c on c.id = a.user_id where c.phone_number=\'{phone_number}\';"
@@ -171,7 +176,7 @@ def photo(update, context):
     user = update.message.from_user
     photo_file = update.message.photo[-1].get_file()
     photo_file.download('user_photo.jpg')
-    context.user_data['image_path']= 'user_photo.jpg'
+    context.user_data['image_path'] = 'user_photo.jpg'
     logging.info(photo_file)
     update.message.reply_text('Gorgeous! Now, send me your update for the day')
 
@@ -184,8 +189,6 @@ def skip_photo(update, context):
     update.message.reply_text('I bet you look great! Now, send me your update for the day')
 
     return INFO
-
-
 
 
 def publish_one_liner(update, context):
@@ -225,7 +228,6 @@ def main():
     # Create the Updater and pass it your bot's token.
     updater = Updater(TOKEN, use_context=True)
 
-
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
@@ -250,7 +252,7 @@ def main():
         },
 
         fallbacks=[CommandHandler('cancel', cancel),
-                   MessageHandler(Filters.regex('Cancel'), start_date)]
+                   MessageHandler(Filters.regex('Cancel'), cancel)]
     )
 
     dp.add_handler(conv_handler)
@@ -259,6 +261,7 @@ def main():
     dp.add_error_handler(error)
 
     run(updater)
+
 
 if __name__ == '__main__':
     main()

@@ -249,12 +249,12 @@ def main():
             PARSE: [MessageHandler(Filters.text, parse_date)]
         },
 
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', cancel),
+                   MessageHandler(Filters.regex('Cancel'), start_date)]
     )
 
     dp.add_handler(conv_handler)
 
-    # dp.add_handler(MessageHandler(Filters.contact, contact_callback))
     # log all errors
     dp.add_error_handler(error)
 
